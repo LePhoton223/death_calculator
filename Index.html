@@ -1,0 +1,522 @@
+<html><head><base href="https://websim.creation.engine/death-distance-calculator/">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Voyage Cosmique de la Vie - Explorateur du Destin</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js"></script>
+<style>
+    body, html {
+        margin: 0;
+        padding: 0;
+        font-family: 'Orbitron', sans-serif;
+        background: #000;
+        color: #fff;
+        overflow-x: hidden;
+        cursor: none;
+    }
+    #canvas-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: -1;
+    }
+    #space-background {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: -2;
+    }
+    .content {
+        position: relative;
+        z-index: 1;
+        padding: 2rem;
+        max-width: 800px;
+        margin: 0 auto;
+        text-align: center;
+    }
+    h1 {
+        font-size: 3rem;
+        margin-bottom: 2rem;
+        text-shadow: 0 0 10px #00f, 0 0 20px #00f, 0 0 30px #00f;
+        animation: glow 2s ease-in-out infinite alternate;
+    }
+    @keyframes glow {
+        from { text-shadow: 0 0 10px #00f, 0 0 20px #00f, 0 0 30px #00f; }
+        to { text-shadow: 0 0 20px #0ff, 0 0 30px #0ff, 0 0 40px #0ff; }
+    }
+    .input-group {
+        margin-bottom: 1rem;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    label {
+        margin-right: 1rem;
+    }
+    input, button, select {
+        padding: 0.5rem;
+        font-size: 1rem;
+        border: none;
+        border-radius: 5px;
+        background: rgba(255,255,255,0.1);
+        color: #fff;
+        transition: all 0.3s ease;
+    }
+    input:focus, select:focus {
+        outline: none;
+        box-shadow: 0 0 10px #0ff;
+    }
+    button {
+        background: #00f;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    button:hover {
+        background: #00a;
+        transform: scale(1.05);
+    }
+    #result {
+        font-size: 1.5rem;
+        margin-top: 2rem;
+        opacity: 0;
+        transition: opacity 0.5s ease;
+    }
+    .timeline {
+        position: relative;
+        width: 100%;
+        height: 5px;
+        background: #333;
+        margin: 2rem 0;
+        overflow: visible;
+    }
+    #lifeLine {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        background: linear-gradient(90deg, #0f0, #ff0, #f00);
+        width: 0;
+        transition: width 1s ease;
+    }
+    #lifeMarker {
+        position: absolute;
+        top: -10px;
+        left: 0;
+        width: 20px;
+        height: 20px;
+        background: #fff;
+        border-radius: 50%;
+        transform: translateX(-50%);
+        transition: left 1s ease;
+        box-shadow: 0 0 10px #fff, 0 0 20px #fff, 0 0 30px #fff;
+    }
+    .milestone {
+        position: absolute;
+        top: -30px;
+        transform: translateX(-50%);
+        font-size: 0.8rem;
+        opacity: 0;
+        transition: opacity 0.5s ease;
+    }
+    #chart-container {
+        width: 100%;
+        height: 300px;
+        margin-top: 2rem;
+    }
+    #custom-cursor {
+        width: 20px;
+        height: 20px;
+        border: 2px solid #fff;
+        border-radius: 50%;
+        position: fixed;
+        pointer-events: none;
+        z-index: 9999;
+        transition: all 0.1s ease;
+        transform: translate(-50%, -50%);
+    }
+    .parallax-section {
+        position: relative;
+        height: 300px;
+        overflow: hidden;
+        margin: 2rem 0;
+    }
+    .parallax-layer {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-size: cover;
+        background-position: center;
+        transition: transform 0.5s ease-out;
+    }
+    #mood-container {
+        margin-top: 2rem;
+        text-align: center;
+    }
+    #mood-emoji {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+    }
+    #life-events {
+        margin-top: 2rem;
+        padding: 1rem;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+    }
+    #life-events h3 {
+        margin-bottom: 1rem;
+    }
+    .event-item {
+        margin-bottom: 0.5rem;
+        padding: 0.5rem;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 5px;
+    }
+    #philosophy-generator {
+        margin-top: 2rem;
+        text-align: center;
+    }
+    #philosophy-text {
+        font-style: italic;
+        font-size: 1.2rem;
+        margin-top: 1rem;
+    }
+</style>
+</head>
+<body>
+    <div id="custom-cursor"></div>
+    <canvas id="space-background"></canvas>
+    <div id="canvas-container"></div>
+    <div class="content">
+        <h1>Voyage Cosmique de la Vie</h1>
+        <div class="input-group">
+            <label for="birthdate">Date de naissance:</label>
+            <input type="date" id="birthdate" required>
+        </div>
+        <div class="input-group">
+            <label for="lifeExpectancy">Espérance de vie estimée:</label>
+            <input type="number" id="lifeExpectancy" min="60" max="120" value="75" required>
+        </div>
+        <div class="input-group">
+            <label for="lifestyle">Style de vie:</label>
+            <select id="lifestyle">
+                <option value="healthy">Sain</option>
+                <option value="average">Moyen</option>
+                <option value="risky">Risqué</option>
+            </select>
+        </div>
+        <button onclick="calculateDestiny()">Explorer mon destin</button>
+        <div id="result"></div>
+        <div class="timeline">
+            <div id="lifeLine"></div>
+            <div id="lifeMarker"></div>
+            <div class="milestone" id="birthMilestone">Naissance</div>
+            <div class="milestone" id="currentMilestone">Aujourd'hui</div>
+            <div class="milestone" id="deathMilestone">Fin estimée</div>
+        </div>
+        <div id="chart-container">
+            <canvas id="lifeChart"></canvas>
+        </div>
+        <div class="parallax-section">
+            <div class="parallax-layer" id="parallax-stars"></div>
+            <div class="parallax-layer" id="parallax-planets"></div>
+            <div class="parallax-layer" id="parallax-asteroids"></div>
+        </div>
+        <div id="mood-container">
+            <div id="mood-emoji"></div>
+            <p id="mood-text"></p>
+        </div>
+        <div id="life-events">
+            <h3>Événements de la vie</h3>
+            <div id="events-list"></div>
+        </div>
+        <div id="philosophy-generator">
+            <button onclick="generatePhilosophy()">Générer une philosophie de vie</button>
+            <p id="philosophy-text"></p>
+        </div>
+    </div>
+
+<script>
+let scene, camera, renderer, starField, lifeChart;
+
+function init3D() {
+    scene = new THREE.Scene();
+    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    renderer = new THREE.WebGLRenderer({ alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+    starField = new THREE.Group();
+    for (let i = 0; i < 1000; i++) {
+        const geometry = new THREE.SphereGeometry(0.05, 32, 32);
+        const material = new THREE.MeshBasicMaterial({ color: 0xffffff });
+        const star = new THREE.Mesh(geometry, material);
+        star.position.set(
+            Math.random() * 2000 - 1000,
+            Math.random() * 2000 - 1000,
+            Math.random() * 2000 - 1000
+        );
+        starField.add(star);
+    }
+    scene.add(starField);
+
+    camera.position.z = 5;
+    animate();
+    initSpaceBackground();
+}
+
+function animate() {
+    requestAnimationFrame(animate);
+    starField.rotation.y += 0.0005;
+    renderer.render(scene, camera);
+}
+
+function initSpaceBackground() {
+    const canvas = document.getElementById('space-background');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    const stars = [];
+    for (let i = 0; i < 200; i++) {
+        stars.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            radius: Math.random() * 1.5,
+            speed: Math.random() * 0.5
+        });
+    }
+
+    function animateSpace() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        stars.forEach(star => {
+            ctx.beginPath();
+            ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+            ctx.fillStyle = 'white';
+            ctx.fill();
+
+            star.y += star.speed;
+            if (star.y > canvas.height) star.y = 0;
+        });
+
+        requestAnimationFrame(animateSpace);
+    }
+
+    animateSpace();
+}
+
+const sound = new Howl({
+    src: ['https://example.com/cosmic-sound.mp3'],
+    volume: 0.5
+});
+
+function playSound() {
+    sound.play();
+}
+
+function calculateDestiny() {
+    const birthdate = new Date(document.getElementById('birthdate').value);
+    const lifeExpectancy = parseInt(document.getElementById('lifeExpectancy').value);
+    const lifestyle = document.getElementById('lifestyle').value;
+    const today = new Date();
+
+    const ageInMilliseconds = today - birthdate;
+    const ageInYears = ageInMilliseconds / (1000 * 60 * 60 * 24 * 365.25);
+    let remainingYears = lifeExpectancy - ageInYears;
+
+    // Adjust remaining years based on lifestyle
+    switch(lifestyle) {
+        case 'healthy':
+            remainingYears *= 1.1;
+            break;
+        case 'risky':
+            remainingYears *= 0.9;
+            break;
+    }
+
+    const totalDays = lifeExpectancy * 365.25;
+    const daysPassed = ageInYears * 365.25;
+    const daysRemaining = remainingYears * 365.25;
+
+    const percentagePassed = (daysPassed / totalDays) * 100;
+
+    const resultElement = document.getElementById('result');
+    resultElement.innerHTML = `
+        <p>Vous avez voyagé ${ageInYears.toFixed(2)} années-lumière dans l'univers de la vie.</p>
+        <p>Votre vaisseau spatial a encore environ ${remainingYears.toFixed(2)} années-lumière à parcourir.</p>
+        <p>Vous avez traversé ${percentagePassed.toFixed(2)}% de votre odyssée cosmique.</p>
+    `;
+    resultElement.style.opacity = 1;
+
+    updateTimeline(percentagePassed);
+    animateResult(remainingYears);
+    updateChart(ageInYears, remainingYears);
+    updateMood(percentagePassed);
+    generateLifeEvents(ageInYears);
+    playSound();
+}
+
+function updateTimeline(percentagePassed) {
+    const lifeLine = document.getElementById('lifeLine');
+    const lifeMarker = document.getElementById('lifeMarker');
+    const birthMilestone = document.getElementById('birthMilestone');
+    const currentMilestone = document.getElementById('currentMilestone');
+    const deathMilestone = document.getElementById('deathMilestone');
+
+    gsap.to(lifeLine, { width: `${percentagePassed}%`, duration: 1, ease: "power2.out" });
+    gsap.to(lifeMarker, { left: `${percentagePassed}%`, duration: 1, ease: "power2.out" });
+
+    birthMilestone.style.left = '0%';
+    currentMilestone.style.left = `${percentagePassed}%`;
+    deathMilestone.style.left = '100%';
+
+    gsap.to([birthMilestone, currentMilestone, deathMilestone], { opacity: 1, duration: 0.5, stagger: 0.2 });
+}
+
+function animateResult(remainingYears) {
+    const resultElement = document.getElementById('result');
+    gsap.from(resultElement.children, {
+        y: 50,
+        opacity: 0,
+        duration: 0.5,
+        stagger: 0.2,
+        ease: "power2.out"
+    });
+
+    starField.rotation.y = 0;
+    gsap.to(starField.rotation, {
+        y: Math.PI * 2 * (remainingYears / 100),
+        duration: 5,
+        ease: "power1.inOut"
+    });
+}
+
+function updateChart(ageInYears, remainingYears) {
+    const ctx = document.getElementById('lifeChart').getContext('2d');
+    
+    if (lifeChart) {
+        lifeChart.destroy();
+    }
+
+    lifeChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Années vécues', 'Années restantes'],
+            datasets: [{
+                data: [ageInYears, remainingYears],
+                backgroundColor: ['#0f0', '#00f']
+            }]
+        },
+        options: {
+            responsive: true,
+            animation: {
+                animateRotate: true,
+                animateScale: true
+            }
+        }
+    });
+}
+
+function updateMood(percentagePassed) {
+    const moodEmoji = document.getElementById('mood-emoji');
+    const moodText = document.getElementById('mood-text');
+
+    if (percentagePassed < 25) {
+        moodEmoji.innerHTML = '😊';
+        moodText.textContent = "Vous êtes jeune et plein d'énergie !";
+    } else if (percentagePassed < 50) {
+        moodEmoji.innerHTML = '😎';
+        moodText.textContent = "Vous êtes dans la fleur de l'âge !";
+    } else if (percentagePassed < 75) {
+        moodEmoji.innerHTML = '🤔';
+        moodText.textContent = "La sagesse commence à s'installer...";
+    } else {
+        moodEmoji.innerHTML = '🧓';
+        moodText.textContent = "Vous avez accumulé beaucoup d'expérience !";
+    }
+}
+
+function generateLifeEvents(age) {
+    const events = [
+        "Naissance",
+        "Premier pas",
+        "Premier jour d'école",
+        "Diplôme d'études secondaires",
+        "Premier emploi",
+        "Mariage",
+        "Naissance d'un enfant",
+        "Changement de carrière",
+        "Retraite"
+    ];
+
+    const eventsList = document.getElementById('events-list');
+    eventsList.innerHTML = '';
+
+    events.forEach((event, index) => {
+        if (index * 10 < age) {
+            const eventItem = document.createElement('div');
+            eventItem.classList.add('event-item');
+            eventItem.textContent = `${index * 10} ans: ${event}`;
+            eventsList.appendChild(eventItem);
+        }
+    });
+}
+
+function generatePhilosophy() {
+    const philosophies = [
+        "Vivez chaque jour comme si c'était le dernier.",
+        "Le bonheur est un voyage, pas une destination.",
+        "Soyez le changement que vous voulez voir dans le monde.",
+        "La vie est courte, souriez tant que vous avez encore des dents.",
+        "Carpe Diem - Profitez de l'instant présent."
+    ];
+
+    const philosophy = philosophies[Math.floor(Math.random() * philosophies.length)];
+    document.getElementById('philosophy-text').textContent = philosophy;
+    playSound();
+}
+
+// Custom cursor
+document.addEventListener('mousemove', (e) => {
+    const cursor = document.getElementById('custom-cursor');
+    cursor.style.left = e.clientX + 'px';
+    cursor.style.top = e.clientY + 'px';
+});
+
+// Parallax effect
+document.addEventListener('mousemove', (e) => {
+    const stars = document.getElementById('parallax-stars');
+    const planets = document.getElementById('parallax-planets');
+    const asteroids = document.getElementById('parallax-asteroids');
+
+    const x = e.clientX / window.innerWidth;
+    const y = e.clientY / window.innerHeight;
+
+    stars.style.transform = `translate(${x * 10}px, ${y * 10}px)`;
+    planets.style.transform = `translate(${x * 20}px, ${y * 20}px)`;
+    asteroids.style.transform = `translate(${x * 30}px, ${y * 30}px)`;
+});
+
+window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    const canvas = document.getElementById('space-background');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+});
+
+init3D();
+</script>
+</body>
+</html>
